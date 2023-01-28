@@ -55,3 +55,6 @@ tools/emscripten/emsdk
 *.dSYM/
 *.su
 
+# Docker files
+.profile
+.bash_history
