@@ -58,3 +58,6 @@ tools/emscripten/emsdk
 # Docker files
 .profile
 .bash_history
+
+# Ctags
+tags
