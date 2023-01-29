@@ -62,7 +62,7 @@ CXXOPT := -std=c++11 -fno-rtti -fno-exceptions -fno-non-call-exceptions
 LDOPT := -Xlinker --just-symbols=$(LDDIR)/osc_api.syms
 
 CWARN := -W -Wall -Wextra
-CXXWARN :=
+CXXWARN := -W -Wall -Wextra -Wdouble-promotion -Wfloat-conversion
 
 FPU_OPTS := -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -fcheck-new
 
