@@ -52,20 +52,22 @@ struct MyOsc {
     // Types
     enum {
         k_flags_none    = 0,
-        k_flag_reset    = 1<<1
+        k_flag_reset    = 1<<1,
+        k_flag_max_detune = 1<<2,
     };
 
     /**
      * @brief Parameters for the oscillator.
      */
     struct Params {
-        // Ratio of saw to triangle wave. 0 == Saw, 1 == Triangle
-        float saw_tri_mix;
-        // Detune spread
+        // Maximum detune spread of all seven oscillators between 0.083333333 and 4.0 octaves
+        // (100 cents to 4 octaves)
+        float max_detune;
+        // Detune spread fine control
         float detune;
 
         Params(void) :
-            saw_tri_mix(0.0f),
+            max_detune(0.0f),
             detune(0.0f)
         {}
     };
@@ -78,6 +80,8 @@ struct MyOsc {
         float phi[N] = {0};
         // Current frequency for the oscillator (omega)
         float w[N] = {0};
+        // Current max detune between all the oscillators
+        float max_detune = kMinDetune;
         // Current flag field
         uint8_t flags;
 
@@ -114,7 +118,7 @@ struct MyOsc {
 
         const float detune_spread = clipminmaxf(0.000f, params.detune, 1.0f);
         // Between 0 and 4 octaves wide
-        const float max_detune = linintf(detune_spread, 0.0f, 8.0f);
+        const float max_detune = linintf(detune_spread, 0.0f, state.max_detune);
         const float detune_delta = max_detune / (N - 1);
         float detune_i = - max_detune / 2.0f;
         for (int i = 0; i < N; i++) {
@@ -131,11 +135,8 @@ struct MyOsc {
     float nextSample() {
         float sig = 0.0f;
 
-        const float wavemix = clipminmaxf(0.005f, params.saw_tri_mix, 0.995f);
-
         for (int i = 0; i < N; i++) {
-            sig += (1.f - wavemix) * osc_sawf(state.phi[i]);
-            sig += wavemix * osc_trif(state.phi[i]);
+            sig += osc_sawf(state.phi[i]);
 
             // Increment phase based on frequency, wrapping in [0, 1)
             state.phi[i] += state.w[i];
@@ -151,4 +152,6 @@ struct MyOsc {
     Params params;
 
     static constexpr float kFactor = 1.0f / N;
+    static constexpr float kMinDetune = 0.0833f;
+    static constexpr float kMaxDetune = 8.0f;
 };

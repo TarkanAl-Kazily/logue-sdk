@@ -33,6 +33,11 @@ void OSC_CYCLE(const user_osc_param_t * const params,
     const uint32_t flags = s.flags;
     s.flags = MyOscN::k_flags_none;
     
+    // Update the maximum detune range
+    if (flags & MyOscN::k_flag_max_detune) {
+        s.max_detune = linintf(p.max_detune, MyOscN::kMinDetune, MyOscN::kMaxDetune);
+    }
+
     // Handle new note / pitch value
     s_osc.updatePitch(osc_w0f_for_note((params->pitch)>>8, params->pitch & 0xFF));
     
@@ -98,7 +103,8 @@ void OSC_PARAM(uint16_t index, uint16_t value)
     
   case k_user_osc_param_shape:
     // 10bit parameter
-    p.saw_tri_mix = param_val_to_f32(value);
+    p.max_detune = param_val_to_f32(value);
+    s.flags |= MyOscN::k_flag_max_detune;
     break;
     
   case k_user_osc_param_shiftshape:
