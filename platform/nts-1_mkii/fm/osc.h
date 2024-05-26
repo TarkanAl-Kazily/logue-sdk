@@ -174,6 +174,8 @@ public:
 
         // Phase based on current note
         // TODO: Get pitch bend
+        // const unit_runtime_osc_context_t *ctxt = static_cast<const unit_runtime_osc_context_t *>(runtime_desc_.hooks.runtime_context);
+        // float w0 = osc_w0f_for_note((ctxt->pitch)>>8, 0);
         float w0 = osc_w0f_for_note(this->state_.current_note, 0);
         float phase = this->state_.phase;
         for (; out_p != out_e; in_p += 2, out_p += 1) {
@@ -182,6 +184,7 @@ public:
 
             phase += w0;
         }
+        this->state_.phase = phase;
 
     }
 
@@ -275,9 +278,11 @@ public:
 
     inline void NoteOff(uint8_t note) {
         (uint8_t)note;
+        this->state_.reset();
     }
 
     inline void AllNoteOff() {
+        this->state_.reset();
     }
 
     inline void PitchBend(uint8_t bend) {
