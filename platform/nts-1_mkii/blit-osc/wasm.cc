@@ -1,13 +1,16 @@
-// reference: https://emscripten.org/docs/api_reference/wasm_audio_worklets.html#wasm-audio-worklets
-// example code: https://github.com/emscripten-core/emscripten/tree/main/test/webaudio
+// reference:
+// https://emscripten.org/docs/api_reference/wasm_audio_worklets.html#wasm-audio-worklets
+// example code:
+// https://github.com/emscripten-core/emscripten/tree/main/test/webaudio
 
 #include <emscripten/bind.h>
-#include <emscripten/webaudio.h>
 #include <emscripten/em_math.h>
+#include <emscripten/webaudio.h>
 using namespace emscripten;
 #include "osc.h"
 
-// this needs to be big enough for the stereo output, inputs, params and the worker stack
+// this needs to be big enough for the stereo output, inputs, params and the
+// worker stack
 uint8_t audioThreadStack[4096];
 
 constexpr int SAMPLE_RATE = 48000;
@@ -15,29 +18,21 @@ constexpr int WEB_AUDIO_FRAME_SIZE = 128;
 std::vector<float> ram;
 std::array<float, WEB_AUDIO_FRAME_SIZE> interleavedOut;
 
-Osc processor; // dsp processor instance
+Osc processor;  // dsp processor instance
 extern const unit_header_t unit_header;
 
 static float BPM_WASM = 120.f;
 
-void fx_set_bpm(float bpm)
-{
+void fx_set_bpm(float bpm) {
   BPM_WASM = bpm;
   processor.setTempo(bpm);
 }
 
-uint16_t fx_get_bpm(void)
-{
-  return static_cast<int>(BPM_WASM * 10.f);
-}
+uint16_t fx_get_bpm(void) { return static_cast<int>(BPM_WASM * 10.f); }
 
-float fx_get_bpmf(void)
-{
-  return BPM_WASM;
-}
+float fx_get_bpmf(void) { return BPM_WASM; }
 
-struct AudioWorkletParameter
-{
+struct AudioWorkletParameter {
   int min;
   int max;
   int center;
@@ -46,130 +41,108 @@ struct AudioWorkletParameter
   std::string name;
 };
 
-std::string getParameterValueString(int index, int value)
-{
-  const unit_param_t &p = unit_header.params[index];
+std::string getParameterValueString(int index, int value) {
+  const unit_param_t& p = unit_header.params[index];
 
   std::string suffix;
 
-  switch (p.type)
-  {
-  case k_unit_param_type_none:
-    break;
-  case k_unit_param_type_percent:
-    suffix = "%";
-    break;
-  case k_unit_param_type_db:
-    suffix = " dB";
-    break;
-  case k_unit_param_type_cents:
-    suffix = " cents";
-    break;
-  case k_unit_param_type_semi:
-    suffix = " semitones";
-    break;
-  case k_unit_param_type_oct:
-    suffix = " octaves";
-    break;
-  case k_unit_param_type_hertz:
-    suffix = " Hz";
-    break;
-  case k_unit_param_type_khertz:
-    suffix = " kHz";
-    break;
-  case k_unit_param_type_bpm:
-    suffix = " bpm";
-    break;
-  case k_unit_param_type_msec:
-    suffix = " ms";
-    break;
-  case k_unit_param_type_sec:
-    suffix = " s";
-    break;
-  case k_unit_param_type_enum:
-    break;
-  case k_unit_param_type_strings:
-    return processor.getParameterStrValue(index, value);
-    break;
-  case k_unit_param_type_drywet:
-    suffix = "%";
-    break;
-  case k_unit_param_type_pan:
-  case k_unit_param_type_spread:
+  switch (p.type) {
+    case k_unit_param_type_none:
+      break;
+    case k_unit_param_type_percent:
+      suffix = "%";
+      break;
+    case k_unit_param_type_db:
+      suffix = " dB";
+      break;
+    case k_unit_param_type_cents:
+      suffix = " cents";
+      break;
+    case k_unit_param_type_semi:
+      suffix = " semitones";
+      break;
+    case k_unit_param_type_oct:
+      suffix = " octaves";
+      break;
+    case k_unit_param_type_hertz:
+      suffix = " Hz";
+      break;
+    case k_unit_param_type_khertz:
+      suffix = " kHz";
+      break;
+    case k_unit_param_type_bpm:
+      suffix = " bpm";
+      break;
+    case k_unit_param_type_msec:
+      suffix = " ms";
+      break;
+    case k_unit_param_type_sec:
+      suffix = " s";
+      break;
+    case k_unit_param_type_enum:
+      break;
+    case k_unit_param_type_strings:
+      return processor.getParameterStrValue(index, value);
+      break;
+    case k_unit_param_type_drywet:
+      suffix = "%";
+      break;
+    case k_unit_param_type_pan:
+    case k_unit_param_type_spread:
 
-    if (value < 0)
-    {
-      suffix = "L";
-    }
-    else if (value > 0)
-    {
-      suffix = "R";
-    }
-    else if (value == p.center)
-    {
-      return "CNTR";
-    }
-    break;
+      if (value < 0) {
+        suffix = "L";
+      } else if (value > 0) {
+        suffix = "R";
+      } else if (value == p.center) {
+        return "CNTR";
+      }
+      break;
 
-  case k_unit_param_type_onoff:
-    if (value == 0)
-    {
-      return "OFF";
-    }
-    else
-    {
-      return "ON";
-    }
-    break;
-  case k_unit_param_type_midi_note:
-    // todo
-  default:
-    return "unimplemented";
-    break;
+    case k_unit_param_type_onoff:
+      if (value == 0) {
+        return "OFF";
+      } else {
+        return "ON";
+      }
+      break;
+    case k_unit_param_type_midi_note:
+      // todo
+    default:
+      return "unimplemented";
+      break;
   };
 
   std::string numerical;
-  if (p.frac_mode == k_unit_param_frac_mode_fixed)
-  {
+  if (p.frac_mode == k_unit_param_frac_mode_fixed) {
     numerical = std::to_string(value / static_cast<double>(1 << p.frac));
-  }
-  else
-  {
+  } else {
     numerical = std::to_string(value / std::pow(10.0, p.frac));
   }
   numerical.erase(numerical.find_last_not_of('0') + 1);
-  if (!numerical.empty() && numerical.back() == '.')
-  {
+  if (!numerical.empty() && numerical.back() == '.') {
     numerical.pop_back();
   }
 
   return numerical + suffix;
 }
 
-std::vector<AudioWorkletParameter> getValidParameters()
-{
+std::vector<AudioWorkletParameter> getValidParameters() {
   std::vector<AudioWorkletParameter> result;
-  for (int i = 0; i < unit_header.num_params; ++i)
-  {
-    const unit_param_t &p = unit_header.params[i];
-    result.push_back({p.min,
-                      p.max,
-                      p.center,
-                      p.init,
-                      p.type,
-                      std::string(p.name)});
+  for (int i = 0; i < unit_header.num_params; ++i) {
+    const unit_param_t& p = unit_header.params[i];
+    result.push_back(
+        {p.min, p.max, p.center, p.init, p.type, std::string(p.name)});
   }
   return result;
 }
 
-void setOscPitch(float f0)
-{
+void setOscPitch(float f0) {
   processor.setPitch(f0 / static_cast<float>(SAMPLE_RATE));
 }
 
 // bind unit parameters
-EMSCRIPTEN_BINDINGS(my_module)
-{
+EMSCRIPTEN_BINDINGS(my_module) {
   value_object<AudioWorkletParameter>("AudioWorkletParameter")
       .field("min", &AudioWorkletParameter::min)
       .field("max", &AudioWorkletParameter::max)
@@ -189,26 +162,24 @@ EMSCRIPTEN_BINDINGS(my_module)
   function("setOscPitch", &setOscPitch);
 }
 
-bool ProcessAudio(int numInputs, const AudioSampleFrame *inputs,
-                  int numOutputs, AudioSampleFrame *outputs,
-                  int numParams, const AudioParamFrame *params,
-                  void *userData)
-{
+bool ProcessAudio(int numInputs, const AudioSampleFrame* inputs, int numOutputs,
+                  AudioSampleFrame* outputs, int numParams,
+                  const AudioParamFrame* params, void* userData) {
   assert(numInputs == 0);
   assert(numOutputs == 1);
   assert(outputs->numberOfChannels == 1);
   assert(outputs->samplesPerChannel == WEB_AUDIO_FRAME_SIZE);
-  auto &output = outputs[0];
+  auto& output = outputs[0];
 
   // // interleave input buffer (mono -> stereo)
   // for (int i = 0; i < WEB_AUDIO_FRAME_SIZE; ++i)
   // {
   //   interleavedIn[2 * i] = input.data[i];
-  //   interleavedIn[2 * i + 1] = (inputs->numberOfChannels == 1) ? input.data[i] : input.data[i + WEB_AUDIO_FRAME_SIZE];
+  //   interleavedIn[2 * i + 1] = (inputs->numberOfChannels == 1) ?
+  //   input.data[i] : input.data[i + WEB_AUDIO_FRAME_SIZE];
   // }
 
-  for (int i = 0; i < numParams; ++i)
-  {
+  for (int i = 0; i < numParams; ++i) {
     // K-rate parameter: use the first sample for the frame
     float value = params[i].data[0];
     processor.setParameter(i, value);
@@ -218,17 +189,16 @@ bool ProcessAudio(int numInputs, const AudioSampleFrame *inputs,
   processor.process(nullptr, interleavedOut.data(), WEB_AUDIO_FRAME_SIZE);
 
   // de-interleave output buffer
-  for (int i = 0; i < WEB_AUDIO_FRAME_SIZE; ++i)
-  {
+  for (int i = 0; i < WEB_AUDIO_FRAME_SIZE; ++i) {
     output.data[i] = interleavedOut[i];
   }
-  return true; // Keep the graph output going
+  return true;  // Keep the graph output going
 }
 
-void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext, bool success, void *userData)
-{
+void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext,
+                                  bool success, void* userData) {
   if (!success)
-    return; // Check browser console in a debug build for detailed errors
+    return;  // Check browser console in a debug build for detailed errors
 
   ram.resize(processor.getBufferSize());
   processor.init(ram.data());
@@ -240,22 +210,27 @@ void AudioWorkletProcessorCreated(EMSCRIPTEN_WEBAUDIO_T audioContext, bool succe
       .numberOfOutputs = 1,
       .outputChannelCounts = outputChannelCounts};
 
-  EMSCRIPTEN_AUDIO_WORKLET_NODE_T wasmAudioWorklet = emscripten_create_wasm_audio_worklet_node(audioContext,
-                                                                                               "logue-osc", &options, &ProcessAudio, 0);
+  EMSCRIPTEN_AUDIO_WORKLET_NODE_T wasmAudioWorklet =
+      emscripten_create_wasm_audio_worklet_node(audioContext, "logue-osc",
+                                                &options, &ProcessAudio, 0);
 
-  EM_ASM({ setupWebAudioAndUI(emscriptenGetAudioObject($0), emscriptenGetAudioObject($1)); }, audioContext, wasmAudioWorklet);
+  EM_ASM(
+      {
+        setupWebAudioAndUI(emscriptenGetAudioObject($0),
+                           emscriptenGetAudioObject($1));
+      },
+      audioContext, wasmAudioWorklet);
 }
 
-void AudioThreadInitialized(EMSCRIPTEN_WEBAUDIO_T audioContext, bool success, void *userData)
-{
+void AudioThreadInitialized(EMSCRIPTEN_WEBAUDIO_T audioContext, bool success,
+                            void* userData) {
   if (!success)
-    return; // Check browser console in a debug build for detailed errors
+    return;  // Check browser console in a debug build for detailed errors
 
   auto valid_parameters = getValidParameters();
 
   WebAudioParamDescriptor params[valid_parameters.size()];
-  for (int i = 0; i < valid_parameters.size(); ++i)
-  {
+  for (int i = 0; i < valid_parameters.size(); ++i) {
     params[i].automationRate = WEBAUDIO_PARAM_K_RATE;
     params[i].defaultValue = valid_parameters[i].init;
     params[i].minValue = valid_parameters[i].min;
@@ -267,14 +242,13 @@ void AudioThreadInitialized(EMSCRIPTEN_WEBAUDIO_T audioContext, bool success, vo
       .numAudioParams = static_cast<int>(valid_parameters.size()),
       .audioParamDescriptors = params};
 
-  emscripten_create_wasm_audio_worklet_processor_async(audioContext, &opts, &AudioWorkletProcessorCreated, 0);
+  emscripten_create_wasm_audio_worklet_processor_async(
+      audioContext, &opts, &AudioWorkletProcessorCreated, 0);
 }
 
-int main()
-{
-  EmscriptenWebAudioCreateAttributes attrs = {
-      .latencyHint = "interactive",
-      .sampleRate = SAMPLE_RATE};
+int main() {
+  EmscriptenWebAudioCreateAttributes attrs = {.latencyHint = "interactive",
+                                              .sampleRate = SAMPLE_RATE};
 
   EMSCRIPTEN_WEBAUDIO_T context = emscripten_create_audio_context(&attrs);
 
@@ -283,7 +257,8 @@ int main()
   printf("Sample rate: %d\n", sample_rate);
   printf("Frame size: %d\n", frame_size);
 
-  emscripten_start_wasm_audio_worklet_thread_async(context, audioThreadStack, sizeof(audioThreadStack),
+  emscripten_start_wasm_audio_worklet_thread_async(context, audioThreadStack,
+                                                   sizeof(audioThreadStack),
                                                    &AudioThreadInitialized, 0);
 
   emscripten_exit_with_live_runtime();
