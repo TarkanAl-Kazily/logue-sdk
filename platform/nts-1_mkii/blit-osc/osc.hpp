@@ -39,7 +39,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 #include "processor.h"
-#include "unit_osc.h"
+#include "math.h"
+#include "osc_api.h"
+#include "macros.h"
 
 class Osc : public Processor {
  public:

@@ -38,7 +38,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-#include "osc.h"
+#include "osc.hpp"
 #include "unit_osc.h"        // base definitions for osc units
 #include "utils/int_math.h"  // clipminmaxi32()
 // #include <algorithm>        // std::fill
