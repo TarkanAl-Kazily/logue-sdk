@@ -38,9 +38,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  Dummy oscillator template instance.
  *
  */
-#include "macros.h"
-#include "math.h"
-#include "osc_api.h"
 #include "processor.h"
 
 class Osc : public Processor {

@@ -3,6 +3,9 @@
  */
 
 #include "osc.hpp"
+#include "osc_api.h"
+#include "macros.h"
+#include "math.h"
 
 ///////////////////////////////////////////////
 /// PRIVATE FUNCTIONS
