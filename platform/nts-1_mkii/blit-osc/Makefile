@@ -254,6 +254,7 @@ wasm:
 	@$(EMCC_BIN_PATH)/emcc -Wno-unknown-attributes -Wno-limited-postlink-optimizations $(INCDIR) \
 		-s AUDIO_WORKLET=1 \
 		-s WASM_WORKERS=1 \
+		-DWASM_ENABLED \
 		-lembind \
 		--shell-file $(SANDBOXDIR)/osc.html \
 		--emrun \
