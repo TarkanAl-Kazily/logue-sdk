@@ -89,7 +89,7 @@ OPT += $(FPU_OPTS)
 ## TODO: there seems to be a bug or some yet unknown behavior that breaks PLT code for external calls when LTO is enabled alongside -nostartfiles
 #OPT += -flto
 
-TOPT := -mthumb -mno-thumb-interwork -DTHUMB_NO_INTERWORKING -DTHUMB_PRESENT
+TOPT := -mthumb -DTHUMB_NO_INTERWORKING -DTHUMB_PRESENT
 
 ##############################################################################
 # Set compilation targets and directories
@@ -113,12 +113,12 @@ CXXSRC := $(UCXXSRC)
 vpath %.s $(sort $(dir $(ASMSRC)))
 vpath %.S $(sort $(dir $(ASMXSRC)))
 vpath %.c $(sort $(dir $(CSRC)))
-vpath %.cc $(sort $(dir $(CXXSRC)))
+vpath %.cpp $(sort $(dir $(CXXSRC)))
 
 ASMOBJS := $(addprefix $(OBJDIR)/, $(notdir $(ASMSRC:.s=.o)))
 ASMXOBJS := $(addprefix $(OBJDIR)/, $(notdir $(ASMXSRC:.S=.o)))
 COBJS := $(addprefix $(OBJDIR)/, $(notdir $(CSRC:.c=.o)))
-CXXOBJS := $(addprefix $(OBJDIR)/, $(notdir $(CXXSRC:.cc=.o)))
+CXXOBJS := $(addprefix $(OBJDIR)/, $(notdir $(CXXSRC:.cpp=.o)))
 
 OBJS := $(ASMXOBJS) $(ASMOBJS) $(COBJS) $(CXXOBJS)
 
@@ -138,7 +138,7 @@ LIBDIR := $(patsubst %,-I%,$(DLIBDIR) $(ULIBDIR))
 # WebAssembly compiler and binding tools
 #
 SANDBOXDIR ?= $(PROJECT_ROOT)/../../../websim
-WASMSRC := wasm.cc $(UCSRC) $(UCXXSRC) $(wildcard $(PROJECT_ROOT)/../../../websim/dsp/*.c) $(wildcard $(PROJECT_ROOT)/../../../websim/dsp/*.cpp)
+WASMSRC := wasm.cpp $(UCSRC) $(UCXXSRC) $(wildcard $(PROJECT_ROOT)/../../../websim/dsp/*.c) $(wildcard $(PROJECT_ROOT)/../../../websim/dsp/*.cpp)
 WASMDIR := $(PROJECT_ROOT)/sim
 DINCDIR += $(TOOLSDIR)/emsdk/upstream/emscripten/system/include
 EMCC_BIN_PATH := $(TOOLSDIR)/emsdk/upstream/emscripten
@@ -152,7 +152,7 @@ ODFLAGS	  := -x --syms
 ASFLAGS   = $(MCFLAGS) -g $(TOPT) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.s=.lst)) $(ADEFS)
 ASXFLAGS  = $(MCFLAGS) -g $(TOPT) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.S=.lst)) $(ADEFS)
 CFLAGS    = $(MCFLAGS) $(TOPT) $(OPT) $(COPT) $(CWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.c=.lst)) $(DEFS)
-CXXFLAGS  = $(MCFLAGS) $(TOPT) $(OPT) $(CXXOPT) $(CXXWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.cc=.lst)) $(DEFS)
+CXXFLAGS  = $(MCFLAGS) $(TOPT) $(OPT) $(CXXOPT) $(CXXWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.cpp=.lst)) $(DEFS)
 LDFLAGS   := $(MCFLAGS) $(TOPT) $(OPT) -nostartfiles $(LIBDIR) -Wl,-z,max-page-size=128,-Map=$(BUILDDIR)/$(PROJECT).map,--cref,--no-warn-mismatch,--library-path=$(RULESPATH),--script=$(LDSCRIPT) $(LDOPT)
 
 OUTFILES := $(BUILDDIR)/$(PROJECT).elf \
@@ -199,7 +199,7 @@ $(COBJS) : $(OBJDIR)/%.o : %.c Makefile
 	@echo Compiling $(<F)
 	@$(CC) -c $(CFLAGS) -I. $(INCDIR) $< -o $@
 
-$(CXXOBJS) : $(OBJDIR)/%.o : %.cc Makefile
+$(CXXOBJS) : $(OBJDIR)/%.o : %.cpp Makefile
 	@echo Compiling $(<F)
 	@$(CXXC) -c $(CXXFLAGS) -I. $(INCDIR) $< -o $@
 
