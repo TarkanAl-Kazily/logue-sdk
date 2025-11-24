@@ -28,6 +28,8 @@ public:
     // for string type parameters
     virtual const char *getParameterStrValue(uint8_t id, int32_t value) const
     {
+        (void) id;
+        (void) value;
         return nullptr;
     }
 

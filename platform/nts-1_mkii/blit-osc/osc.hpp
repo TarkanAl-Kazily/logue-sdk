@@ -38,17 +38,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  Dummy oscillator template instance.
  *
  */
-#include "processor.h"
+#include "macros.h"
 #include "math.h"
 #include "osc_api.h"
-#include "macros.h"
+#include "processor.h"
 
 class Osc : public Processor {
  public:
-  uint32_t getBufferSize() const override final {
-    return 0;
-  }  // NTS-1 osc do not support sdram allocation
-
   // audio parameters
   enum { SHAPE = 0U, ALT, PARAM3, NUM_PARAMS };
 
@@ -76,82 +72,20 @@ class Osc : public Processor {
     NUM_PARAM3_VALUES,
   };
 
-  void setParameter(uint8_t index, int32_t value) override final {
-    switch (index) {
-      case SHAPE:
-        params_.shape = param_10bit_to_f32(value);  // 0 .. 1023 -> 0.0 .. 1.0
-        break;
-
-      case ALT:
-        params_.alt = param_10bit_to_f32(value);  // 0 .. 1023 -> 0.0 .. 1.0
-        break;
-
-      case PARAM3:
-        params_.param3 = value;  // string type, receiving index
-        break;
-
-      default:
-        break;
-    }
-  }
-
+  // Overridden Processor methods
+  uint32_t getBufferSize() const override final { return 0; }
+  void setParameter(uint8_t index, int32_t value) override final;
   const char* getParameterStrValue(uint8_t index,
-                                   int32_t value) const override final {
-    // Note: String memory must be accessible even after function returned.
-    //       It can be assumed that caller will have copied or used the string
-    //       before the next call to getParameterStrValue
-    static const char* param3_strings[NUM_PARAM3_VALUES] = {
-        "VAL 0",
-        "VAL 1",
-        "VAL 2",
-        "VAL 3",
-    };
-
-    switch (index) {
-      case PARAM3:
-        if (value >= PARAM3_VALUE0 && value < NUM_PARAM3_VALUES)
-          return param3_strings[value];
-        break;
-      default:
-        break;
-    }
-
-    return nullptr;
-  }
-
-  // life-cycle methods
-  void init(float*) override final {
-    params_.reset();
-    phasor_ = 0.f;
-  }
-
-  // audio processing callbacks
+                                   int32_t value) const override final;
+  void init(float* buffer) override final;
+  void process(const float* __restrict in, float* __restrict out,
+               uint32_t frames) override final;
 
   // set frequency in digital w (w = f/samplerate, 0.5 is Nyquist)
-  void setPitch(float w0) {
-    w0_ = w0;  // use this as the phase increment for oscillator
-  }
+  void setPitch(float w0);
 
   // lfo in (-1.0f, 1.0f)
-  void setShapeLfo(float lfo) { lfo_ = lfo; }
-
-  void process(const float* __restrict in, float* __restrict out,
-               uint32_t frames) override final {
-    // Caching current parameter values. Consider smoothing sensitive parameters
-    // in audio loop
-    const Params p = params_;
-
-    for (const float* out_end = out + frames; out != out_end;
-         in += 2, out += 1) {
-      // Process/generate samples here
-
-      // phasor update
-      phasor_ = fmodf(phasor_ + w0_, 1.f);
-
-      // read sine wave table
-      out[0] = osc_sinf(phasor_);
-    }
-  }
+  void setShapeLfo(float lfo);
 
  private:
   Params params_;

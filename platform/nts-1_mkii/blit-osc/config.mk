@@ -13,7 +13,7 @@ PROJECT_TYPE := osc
 UCSRC = header.c
 
 # C++ sources 
-UCXXSRC = unit.cpp
+UCXXSRC = unit.cpp osc.cpp
 
 # List ASM source files here
 UASMSRC = 
