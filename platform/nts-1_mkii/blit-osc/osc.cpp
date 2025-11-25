@@ -71,13 +71,13 @@ void Osc::setupBlits() {
     }
 }
 
-float Osc::getNextPeriod() const {
-    float osc_period_samples = state_.fs / state_.w0;
-    return state_.last_edge + osc_period_samples;
+float Osc::getNextPeriod(const State& s) const {
+    float osc_period_samples = s.fs / s.w0;
+    return s.last_edge + osc_period_samples;
 }
 
 void Osc::fillBlitBuffer(const State& s) {
-    float next_period = getNextPeriod();
+    float next_period = getNextPeriod(s);
     float remainder = next_period - ((int)next_period);
     uint16_t which_blit = remainder * kBlits;
     const auto& blit = blits_[which_blit];
@@ -112,16 +112,18 @@ void Osc::process(const float* __restrict in, float* __restrict out,
         const State s = state_;
 
         float next_output = s.last_output * 0.9999f;
-        float next_period = getNextPeriod();
+        float next_period = getNextPeriod(s);
         if (s.buf_index == 0 &&
             (next_period - (kBlitSamples >> 1) - s.phasor < 1.0f) &&
             (next_period - (kBlitSamples >> 1) - s.phasor >= 0.0f)) {
             state_.polarity = -s.polarity;
             state_.buf_index = 1;
-            state_.last_edge = next_period;
+            // Shift the time to the next edge AND the current sample count by
+            // the same amount, to avoid floats becoming increasingly large.
+            state_.last_edge = next_period - s.phasor;
+            state_.phasor -= s.phasor;
             fillBlitBuffer(s);
             next_output += buf_[0];
-            // TODO: Handle large floats
         }
 
         if (s.buf_index > 0) {

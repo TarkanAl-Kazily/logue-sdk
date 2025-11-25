@@ -119,5 +119,5 @@ class Osc : public Processor {
      *
      * @return sample index (float)
      */
-    float getNextPeriod() const;
+    float getNextPeriod(const State& s) const;
 };
