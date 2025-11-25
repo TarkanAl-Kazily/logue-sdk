@@ -63,7 +63,7 @@ void Osc::setupBlits() {
             }
 
             pi_x *= PI;  // TODO: Multiply by state_.fs ?
-            blit[j] = sinf(pi_x) / pi_x;
+            blit[j] = kBlitScale * sinf(pi_x) / pi_x;
         }
         LOG("setupBlits i %d %f {%f %f %f %f %f %f %f %f}", i, sample_offset,
             blit[0], blit[1], blit[2], blit[3], blit[4], blit[5], blit[6],
