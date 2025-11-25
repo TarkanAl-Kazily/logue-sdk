@@ -48,6 +48,11 @@ class Osc : public Processor {
          * @brief Current phase sample value
          */
         uint64_t phasor;
+
+        /**
+         * @brief PWM duty cycle between 0 and 1
+         */
+        float duty_cycle;
         /**
          * @brief Last oscillator edge for a BLIT integration
          */
@@ -115,9 +120,9 @@ class Osc : public Processor {
     void fillBlitBuffer(const State& s);
 
     /**
-     * @brief Returns the next sample index (float) to integrate a BLIT at.
+     * @brief Returns the length of a full waveform cycle in samples.
      *
-     * @return sample index (float)
+     * @return samples (float)
      */
-    float getNextPeriod(const State& s) const;
+    float getPeriodCycles(const State& s) const;
 };

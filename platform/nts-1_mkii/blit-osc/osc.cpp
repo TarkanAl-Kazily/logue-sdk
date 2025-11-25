@@ -33,6 +33,7 @@ void Osc::State::reset() {
     last_output = 0.0f;
     polarity = 1.0f;
     buf_index = 0;
+    duty_cycle = 0.25f;
 }
 
 ///////////////////////////////////////////////
@@ -71,14 +72,17 @@ void Osc::setupBlits() {
     }
 }
 
-float Osc::getNextPeriod(const State& s) const {
-    float osc_period_samples = s.fs / s.w0;
-    return s.last_edge + osc_period_samples;
-}
+float Osc::getPeriodCycles(const State& s) const { return s.fs / s.w0; }
 
 void Osc::fillBlitBuffer(const State& s) {
-    float next_period = getNextPeriod(s);
-    float remainder = next_period - ((int)next_period);
+    float edge_length = getPeriodCycles(s);
+    if (s.polarity > 0) {
+        edge_length *= s.duty_cycle;
+    } else {
+        edge_length *= (1.0f - s.duty_cycle);
+    }
+    float next_edge = s.last_edge + edge_length;
+    float remainder = next_edge - ((int)next_edge);
     uint16_t which_blit = remainder * kBlits;
     const auto& blit = blits_[which_blit];
 
@@ -112,7 +116,13 @@ void Osc::process(const float* __restrict in, float* __restrict out,
         const State s = state_;
 
         float next_output = s.last_output * 0.9999f;
-        float next_period = getNextPeriod(s);
+        float edge_length = getPeriodCycles(s);
+        if (s.polarity > 0) {
+            edge_length *= s.duty_cycle;
+        } else {
+            edge_length *= (1.0f - s.duty_cycle);
+        }
+        float next_period = s.last_edge + edge_length;
         if (s.buf_index == 0 &&
             (next_period - (kBlitSamples >> 1) - s.phasor < 1.0f) &&
             (next_period - (kBlitSamples >> 1) - s.phasor >= 0.0f)) {
@@ -140,6 +150,8 @@ void Osc::process(const float* __restrict in, float* __restrict out,
         state_.phasor += 1;
         state_.last_output = next_output;
     }
+
+    state_.duty_cycle = params_.shape;
 }
 
 const char* Osc::getParameterStrValue(uint8_t index, int32_t value) const {
