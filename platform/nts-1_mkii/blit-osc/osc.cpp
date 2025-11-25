@@ -28,11 +28,10 @@
 void Osc::State::reset() {
     w0 = 440.0f;
     fs = 48000.0f;
-    phasor = 0.0f;
+    phasor = 0;
     last_edge = 0.0f;
     last_output = 0.0f;
     polarity = 1.0f;
-    use_blit_buffer = false;
     buf_index = 0;
 }
 
@@ -114,10 +113,9 @@ void Osc::process(const float* __restrict in, float* __restrict out,
 
         float next_output = s.last_output * 0.9999f;
         float next_period = getNextPeriod();
-        if (!s.use_blit_buffer &&
+        if (s.buf_index == 0 &&
             (next_period - (kBlitSamples >> 1) - s.phasor < 1.0f) &&
             (next_period - (kBlitSamples >> 1) - s.phasor >= 0.0f)) {
-            state_.use_blit_buffer = true;
             state_.polarity = -s.polarity;
             state_.buf_index = 1;
             state_.last_edge = next_period;
@@ -126,19 +124,18 @@ void Osc::process(const float* __restrict in, float* __restrict out,
             // TODO: Handle large floats
         }
 
-        if (s.use_blit_buffer) {
+        if (s.buf_index > 0) {
             next_output += buf_[s.buf_index];
             if (s.buf_index == kBlitSamples - 1) {
-                state_.use_blit_buffer = false;
                 state_.buf_index = 0;
             } else {
                 state_.buf_index = s.buf_index + 1;
             }
         }
 
-        *out = 0.9f * (next_output * 2.0f - 1.0f);
+        *out = next_output * 2.0f - 1.0f;
 
-        state_.phasor += 1.0f;
+        state_.phasor += 1;
         state_.last_output = next_output;
     }
 }

@@ -47,7 +47,7 @@ class Osc : public Processor {
         /**
          * @brief Current phase sample value
          */
-        float phasor;
+        uint64_t phasor;
         /**
          * @brief Last oscillator edge for a BLIT integration
          */
@@ -62,8 +62,6 @@ class Osc : public Processor {
          * @brief positive or negative, BLIT phase.
          */
         float polarity;
-
-        bool use_blit_buffer;
 
         uint16_t buf_index;
 
