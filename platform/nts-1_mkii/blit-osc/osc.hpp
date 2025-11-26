@@ -41,10 +41,6 @@ class Osc : public Processor {
          */
         float w0;
         /**
-         * @brief Sample rate
-         */
-        float fs;
-        /**
          * @brief Current phase sample value
          */
         uint64_t phasor;

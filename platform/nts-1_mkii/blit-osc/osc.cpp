@@ -1,5 +1,5 @@
 /*
- * copyright 2025 tarkan al-kazily
+ * Copyright 2025 Tarkan Al-Kazily
  */
 
 #include "osc.hpp"
@@ -27,7 +27,6 @@
 
 void Osc::State::reset() {
     w0 = 440.0f;
-    fs = 48000.0f;
     phasor = 0;
     last_edge = 0.0f;
     last_output = 0.0f;
@@ -63,7 +62,7 @@ void Osc::setupBlits() {
                 continue;
             }
 
-            pi_x *= PI;  // TODO: Multiply by state_.fs ?
+            pi_x *= PI;
             blit[j] = kBlitScale * sinf(pi_x) / pi_x;
         }
         LOG("setupBlits i %d %f {%f %f %f %f %f %f %f %f}", i, sample_offset,
@@ -72,7 +71,9 @@ void Osc::setupBlits() {
     }
 }
 
-float Osc::getPeriodCycles(const State& s) const { return s.fs / s.w0; }
+float Osc::getPeriodCycles(const State& s) const {
+    return getSampleRate() / s.w0;
+}
 
 void Osc::fillBlitBuffer(const State& s) {
     float edge_length = getPeriodCycles(s);
@@ -101,8 +102,6 @@ void Osc::init(float* buffer) {
     LOG("INIT");
     params_.reset();
     state_.reset();
-
-    state_.fs = getSampleRate();
 
     setupBlits();
     LOG("DONE INIT");
