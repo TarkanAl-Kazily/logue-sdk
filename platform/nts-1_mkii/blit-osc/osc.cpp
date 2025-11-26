@@ -29,7 +29,7 @@ void Osc::State::reset() {
     inverse_w0 = 0;
     phasor = 0;
     last_edge = 0;
-    polarity = 1.0f;
+    phase_state = HIGH_PHASE;
     buf_index = 0;
     duty_cycle = 0.5f;
 }
@@ -77,20 +77,21 @@ q48_16_t Osc::getPeriodCycles(const State& s) const {
 }
 
 void Osc::fillBlitBuffer(const State& s) {
-    q48_16_t edge_length = getPeriodCycles(s);
-    if (s.polarity > 0) {
-        edge_length = q48_16_mul(edge_length, float_to_q48_16(s.duty_cycle));
+    q48_16_t next_edge = s.last_edge;
+    if (s.phase_state == State::HIGH_PHASE) {
+        // next_edge is determined by duty cycle length
+        next_edge +=
+            q48_16_mul(getPeriodCycles(s), float_to_q48_16(s.duty_cycle));
     } else {
-        edge_length =
-            q48_16_mul(edge_length, float_to_q48_16(1.0f - s.duty_cycle));
+        // next_edge is determined by full oscillator period
+        next_edge += getPeriodCycles(s);
     }
-    q48_16_t next_edge = s.last_edge + edge_length;
     uint64_t remainder = next_edge & BITS(16);
     uint64_t which_blit = remainder / kBlits;
     const auto& blit = blits_[which_blit];
 
     for (uint8_t i = 0; i < kBlitSamples; i++) {
-        buf_[i] = blit[i] * s.polarity;
+        buf_[i] = s.phase_state == State::HIGH_PHASE ? blit[i] : -blit[i];
     }
 }
 
@@ -112,26 +113,45 @@ void Osc::init(float* buffer) {
 void Osc::process(const float* __restrict in, float* __restrict out,
                   uint32_t frames) {
     (void)in;
+    const Params p = params_;
     for (const float* out_end = out + frames; out != out_end; out += 1) {
         const State s = state_;
 
-        float next_output = s.last_output * 0.99f;
-        q48_16_t edge_length = getPeriodCycles(s);
-        if (s.polarity > 0) {
-            edge_length =
-                q48_16_mul(edge_length, float_to_q48_16(s.duty_cycle));
+        float next_output = s.last_output * 0.999f;
+        q48_16_t next_edge = s.last_edge;
+        if (s.phase_state == State::HIGH_PHASE) {
+            // next_edge is determined by duty cycle length
+            next_edge +=
+                q48_16_mul(getPeriodCycles(s), float_to_q48_16(s.duty_cycle));
         } else {
-            edge_length =
-                q48_16_mul(edge_length, float_to_q48_16(1.0f - s.duty_cycle));
+            // next_edge is determined by full oscillator period
+            next_edge += getPeriodCycles(s);
         }
-        q48_16_t next_period = q48_16_add(s.last_edge, edge_length);
-        if (s.buf_index == 0 && ((next_period >> 16) - s.phasor == 0)) {
+        // TODO: If the duty cycle was updated and now the last edge has already
+        // passed, force an edge immediately. Otherwise the polarity goes out of
+        // sync and we integrate multiple blits with the same polarity, and the
+        // sound dies.
+        // Because we reset the oscillator phase completely whenever a new note
+        // plays, this doesn't happen if the oscillator frequency changes (but
+        // would also be necessary to support glide too). Additionally if we've
+        // already done an edge this cycle we should not do a second edge for
+        // the same reason.
+        if (s.buf_index == 0 && (((next_edge >> 16) - s.phasor == 0) ||
+                                 (s.phase_state == State::HIGH_PHASE &&
+                                  (s.phasor > (next_edge >> 16))))) {
             fillBlitBuffer(s);
             next_output += buf_[0];
-
-            state_.polarity = -s.polarity;
             state_.buf_index = 1;
-            state_.last_edge = next_period;
+
+            if (s.phase_state == State::HIGH_PHASE) {
+                // Half oscillator cycle
+                state_.phase_state = State::LOW_PHASE;
+            } else {
+                // Full oscillator cycle
+                state_.phase_state = State::HIGH_PHASE;
+                state_.last_edge = next_edge;
+            }
+
         } else if (s.buf_index > 0) {
             next_output += buf_[s.buf_index];
             if (s.buf_index == kBlitSamples - 1) {
@@ -147,9 +167,15 @@ void Osc::process(const float* __restrict in, float* __restrict out,
         // Rollover both last_edge and phasor at 48 bits to stay in sync.
         state_.phasor = state_.phasor & BITS(48);
         state_.last_output = next_output;
-    }
 
-    state_.duty_cycle = 0.5f;
+        // Update duty cycle from params
+        if (fabsf(s.duty_cycle - p.shape) <= 0.025) {
+            state_.duty_cycle = p.shape;
+        } else {
+            state_.duty_cycle += (s.duty_cycle < p.shape) ? 0.001 : -0.001;
+        }
+        state_.duty_cycle = fminf(fmaxf(state_.duty_cycle, 0.1), 0.9);
+    }
 }
 
 const char* Osc::getParameterStrValue(uint8_t index, int32_t value) const {

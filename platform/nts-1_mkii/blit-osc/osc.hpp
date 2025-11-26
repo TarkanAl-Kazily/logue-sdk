@@ -37,6 +37,7 @@ class Osc : public Processor {
      * @brief Current state of the oscillator
      */
     struct State {
+        enum { HIGH_PHASE = 0U, LOW_PHASE = 1U };
         /**
          * @brief Note frequency to play at, stored inverted (1 / w0)
          */
@@ -50,7 +51,8 @@ class Osc : public Processor {
          */
         float duty_cycle;
         /**
-         * @brief Last oscillator edge for a BLIT integration
+         * @brief Last start of oscillator cycle. When the oscillator would be
+         * "synced"
          */
         q48_16_t last_edge;
 
@@ -60,9 +62,13 @@ class Osc : public Processor {
         float last_output;
 
         /**
-         * @brief positive or negative, BLIT phase.
+         * @brief If the oscillator is in the first part of its phase (high) or
+         * second (low)
+         *
+         * BLIT polarity is positive going from LOW to HIGH, and negative going
+         * from HIGH to LOW.
          */
-        float polarity;
+        uint8_t phase_state;
 
         uint16_t buf_index;
 
@@ -98,7 +104,7 @@ class Osc : public Processor {
     Params params_;
     State state_;
 
-    static constexpr uint16_t kBlitSamples = 16;
+    static constexpr uint16_t kBlitSamples = 8;
     static constexpr uint16_t kBlits = 256;
     static constexpr float kBlitScale = 0.90;
 
