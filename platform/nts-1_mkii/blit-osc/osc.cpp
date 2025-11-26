@@ -29,7 +29,6 @@ void Osc::State::reset() {
     inverse_w0 = 0;
     phasor = 0;
     last_edge = 0;
-    last_output = 0.0f;
     polarity = 1.0f;
     buf_index = 0;
     duty_cycle = 0.5f;
@@ -104,6 +103,7 @@ void Osc::init(float* buffer) {
     LOG("INIT");
     params_.reset();
     state_.reset();
+    state_.last_output = 0.0f;
 
     setupBlits();
     LOG("DONE INIT");
@@ -116,7 +116,7 @@ void Osc::process(const float* __restrict in, float* __restrict out,
          in += 2, out += 1) {
         const State s = state_;
 
-        float next_output = s.last_output * 0.9999f;
+        float next_output = s.last_output * 0.99f;
         q48_16_t edge_length = getPeriodCycles(s);
         if (s.polarity > 0) {
             edge_length =
@@ -126,16 +126,14 @@ void Osc::process(const float* __restrict in, float* __restrict out,
                 q48_16_mul(edge_length, float_to_q48_16(1.0f - s.duty_cycle));
         }
         q48_16_t next_period = q48_16_add(s.last_edge, edge_length);
-        if (s.buf_index == 0 &&
-            ((next_period >> 16) - (kBlitSamples >> 1) - s.phasor == 0)) {
+        if (s.buf_index == 0 && ((next_period >> 16) - s.phasor == 0)) {
+            fillBlitBuffer(s);
+            next_output += buf_[0];
+
             state_.polarity = -s.polarity;
             state_.buf_index = 1;
             state_.last_edge = next_period;
-            fillBlitBuffer(s);
-            next_output += buf_[0];
-        }
-
-        if (s.buf_index > 0) {
+        } else if (s.buf_index > 0) {
             next_output += buf_[s.buf_index];
             if (s.buf_index == kBlitSamples - 1) {
                 state_.buf_index = 0;
@@ -144,7 +142,7 @@ void Osc::process(const float* __restrict in, float* __restrict out,
             }
         }
 
-        *out = next_output * 2.0f - 1.0f;
+        *out = next_output;
 
         state_.phasor += 1;
         // Rollover both last_edge and phasor at 48 bits to stay in sync.
