@@ -8,6 +8,7 @@
 
 #include <array>
 
+#include "fixed_point.h"
 #include "processor.h"
 
 class Osc : public Processor {
@@ -37,14 +38,13 @@ class Osc : public Processor {
      */
     struct State {
         /**
-         * @brief Note frequency to play at
+         * @brief Note frequency to play at, stored inverted (1 / w0)
          */
-        float w0;
+        q48_16_t inverse_w0;
         /**
          * @brief Current phase sample value
          */
         uint64_t phasor;
-
         /**
          * @brief PWM duty cycle between 0 and 1
          */
@@ -52,7 +52,7 @@ class Osc : public Processor {
         /**
          * @brief Last oscillator edge for a BLIT integration
          */
-        float last_edge;
+        q48_16_t last_edge;
 
         /**
          * @brief last output value.
@@ -120,5 +120,5 @@ class Osc : public Processor {
      *
      * @return samples (float)
      */
-    float getPeriodCycles(const State& s) const;
+    q48_16_t getPeriodCycles(const State& s) const;
 };
