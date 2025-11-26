@@ -100,7 +100,7 @@ class Osc : public Processor {
 
     static constexpr uint16_t kBlitSamples = 16;
     static constexpr uint16_t kBlits = 256;
-    static constexpr float kBlitScale = 0.70;
+    static constexpr float kBlitScale = 0.90;
 
     std::array<std::array<float, kBlitSamples>, kBlits> blits_;
     std::array<float, kBlitSamples> buf_;

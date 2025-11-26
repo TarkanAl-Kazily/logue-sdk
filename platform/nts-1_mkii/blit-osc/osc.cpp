@@ -58,7 +58,7 @@ void Osc::setupBlits() {
             float pi_x = sample_offset + j - (kBlitSamples >> 1);
 
             if (pi_x == 0) {
-                blit[j] = 1.0f;
+                blit[j] = kBlitScale * 1.0f;
                 continue;
             }
 
@@ -112,8 +112,7 @@ void Osc::init(float* buffer) {
 void Osc::process(const float* __restrict in, float* __restrict out,
                   uint32_t frames) {
     (void)in;
-    for (const float* out_end = out + frames; out != out_end;
-         in += 2, out += 1) {
+    for (const float* out_end = out + frames; out != out_end; out += 1) {
         const State s = state_;
 
         float next_output = s.last_output * 0.99f;
