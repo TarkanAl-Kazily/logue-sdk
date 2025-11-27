@@ -172,9 +172,15 @@ void Osc::process(const float* __restrict in, float* __restrict out,
         if (fabsf(s.duty_cycle - p.shape) <= 0.025) {
             state_.duty_cycle = p.shape;
         } else {
-            state_.duty_cycle += (s.duty_cycle < p.shape) ? 0.001 : -0.001;
+            state_.duty_cycle += (s.duty_cycle < p.shape) ? 0.01 : -0.01;
         }
-        state_.duty_cycle = fminf(fmaxf(state_.duty_cycle, 0.1), 0.9);
+        // This implementation of the oscillator can only integrate a single
+        // blit at a time, so the duty cycle must be kept within a range that
+        // ensures the edges are at least kBlitSamples apart.
+        const float min_duty_cycle =
+            ((float)(kBlitSamples)) / ((float)(getPeriodCycles(state_) >> 16));
+        state_.duty_cycle = fminf(fmaxf(state_.duty_cycle, min_duty_cycle),
+                                  1.0f - min_duty_cycle);
     }
 }
 

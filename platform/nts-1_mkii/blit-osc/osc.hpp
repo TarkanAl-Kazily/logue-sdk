@@ -104,7 +104,7 @@ class Osc : public Processor {
     Params params_;
     State state_;
 
-    static constexpr uint16_t kBlitSamples = 8;
+    static constexpr uint16_t kBlitSamples = 16;
     static constexpr uint16_t kBlits = 256;
     static constexpr float kBlitScale = 0.90;
 
