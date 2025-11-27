@@ -18,7 +18,7 @@
         emscripten_log(EM_LOG_CONSOLE, __VA_ARGS__); \
     }
 #else  // defined(WASM_ENABLED)
-#define LOG(x)
+#define LOG(...)
 #endif  // !defined(WASM_ENABLED)
 
 ///////////////////////////////////////////////
