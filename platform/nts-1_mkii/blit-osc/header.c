@@ -57,7 +57,7 @@ const __unit_header unit_header_t unit_header = {
         0x0U,  // ID for this unit. Scoped within the context of a given dev_id.
     .version = 0x00010000U,  // This unit's version: major.minor.patch
                              // (major<<16 minor<<8 patch).
-    .name = "dummy",         // Name for this unit, will be displayed on device
+    .name = "blitsq",        // Name for this unit, will be displayed on device
     .num_params = 3,         // Number of valid parameter descriptors. (max. 10)
     .params =
         {// Format:

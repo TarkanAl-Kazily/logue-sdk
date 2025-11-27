@@ -44,8 +44,11 @@ static inline bool in_range(float val, float start, float end) {
 
 void Osc::setPitch(float w0) {
     LOG("setPitch %f", w0);
-    state_.reset();
-    state_.inverse_w0 = float_to_q48_16(1.0f / w0);
+    if (state_.w0 != w0) {
+        state_.reset();
+        state_.w0 = w0;
+        state_.inverse_w0 = float_to_q48_16(1.0f / w0);
+    }
 }
 
 void Osc::setShapeLfo(float lfo) { (void)lfo; }

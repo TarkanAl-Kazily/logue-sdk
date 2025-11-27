@@ -72,6 +72,11 @@ class Osc : public Processor {
 
         uint16_t buf_index;
 
+        /**
+         * @brief Current pitch
+         */
+        float w0;
+
         void reset();
 
         State() { reset(); }

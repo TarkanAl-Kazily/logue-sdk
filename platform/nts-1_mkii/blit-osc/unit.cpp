@@ -90,6 +90,9 @@ __unit_callback int8_t unit_init(const unit_runtime_desc_t* desc) {
         cached_values[id] = static_cast<int32_t>(unit_header.params[id].init);
     }
 
+    // Initialize oscillator (setup blits)
+    s_osc_instance.init(nullptr);
+
     return k_unit_err_none;
 }
 
